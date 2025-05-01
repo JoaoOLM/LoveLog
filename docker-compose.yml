@@ -20,5 +20,18 @@ services:
       - db
     env_file: "backend/.env"
 
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # ignora o node_modules do host
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:

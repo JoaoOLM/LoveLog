@@ -26,7 +26,5 @@ urlpatterns = [
     path('api/lists/', include('lists.urls')),
     path('api/photos/', include('photos.urls')),
     path('api/board/', include('board.urls')),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

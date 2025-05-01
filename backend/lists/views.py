@@ -2,16 +2,40 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import List, Item
+from django.db.models import Prefetch
 from couples.mixins import CoupleAuthMixin
 
 # Create your views here.
 class ListView(APIView, CoupleAuthMixin):
     def get(self, request):
         couple = self.get_couple(request)
-        lists = List.objects.filter(couple=couple)
-        data = [{"id":l.id, "nome":l.name} for l in lists]
+        # prefetch todos os itens de cada lista sem filtrar por couple
+        lists = (
+            List.objects
+                .filter(couple=couple)
+                .prefetch_related(
+                    Prefetch(
+                        'item_set',  # ou use o related_name se você tiver definido outro
+                        queryset=Item.objects.order_by('id'),
+                        to_attr='itens_obj'
+                    )
+                )
+                .order_by('name')
+        )
+
+        data = [
+            {
+                "id": l.id,
+                "nome": l.name,
+                "itens": [
+                    {"id": i.id, "nome": i.name}
+                    for i in getattr(l, 'itens_obj', [])
+                ]
+            }
+            for l in lists
+        ]
+
         return Response(data)
-        
         
     def post(self, request):
         couple = self.get_couple(request)

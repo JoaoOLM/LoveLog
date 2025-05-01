@@ -13,6 +13,12 @@ class Couple(models.Model):
 
     def check_password(self, raw_password):
         return check_password(raw_password, self.password)
+    
+    def save(self, *args, **kwargs):
+        # Se a senha não for criptografada, criptografa antes de salvar
+        if self.password and not self.password.startswith('$'):  # Verifica se a senha não está criptografada
+            self.set_password(self.password)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.code})"

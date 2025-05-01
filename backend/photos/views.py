@@ -9,7 +9,7 @@ class PhotoListCreateView(APIView, CoupleAuthMixin):
     def get(self, request):
         couple = self.get_couple(request)
         photos = Photo.objects.filter(couple=couple)
-        data = [{"id": p.id, "url": p.image.url} for p in photos]
+        data = [{"id": p.id, "url": request.build_absolute_uri(p.image.url)} for p in photos]
         return Response(data)
     
     def post(self, request):
@@ -19,7 +19,7 @@ class PhotoListCreateView(APIView, CoupleAuthMixin):
         if not image:
             return Response({"error" : "Image is required."}, status=status.HTTP_400_BAD_REQUEST)
         photo = Photo.objects.create(couple=couple, image=image)
-        return Response({"id": photo.id, "url": photo.image.url}, status=status.HTTP_201_CREATED)
+        return Response({"id": photo.id, "url": request.build_absolute_uri(photo.image.url)}, status=status.HTTP_201_CREATED)
     
 class PhotoDeleteView(APIView, CoupleAuthMixin):
     def delete(self, request, photo_id):

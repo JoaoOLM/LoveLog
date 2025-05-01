@@ -8,7 +8,7 @@ class CoupleAuthMixin:
         if not auth_header or not auth_header.startswith('LoveLog '):
             raise AuthenticationFailed('Authorization header missing or invalid.')
         
-        code = auth_header.split('')[1]
+        code = auth_header.split(' ')[1]
         
         try:
             couple = Couple.objects.get(code=code)
