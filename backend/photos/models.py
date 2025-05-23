@@ -8,5 +8,5 @@ class Photo(models.Model):
     uploaded_at = models.DateField(auto_now_add=True)
     
     def __str__(self):
-        return f'Photo {self.id} fom couple {self.couple.name}'    
+        return f'Photo {self.id} from couple {self.couple.name}'    
     

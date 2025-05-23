@@ -32,6 +32,7 @@ CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
 
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', cast=bool)
 
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(',')
 
 # Application definition
 
@@ -137,7 +138,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'  # para produção
 STATICFILES_DIRS = [BASE_DIR / "static"]  # para dev
 
 # Media files (uploads de imagens)
-MEDIA_URL = '/media/'
+MEDIA_URL = 'http://localhost:8080/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type

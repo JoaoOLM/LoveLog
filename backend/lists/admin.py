@@ -10,6 +10,6 @@ class ListAdmin(admin.ModelAdmin):
     
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'status', 'list', 'created_at')
+    list_display = ('name', 'completed', 'list', 'created_at')
     search_fields = ('name', 'list__name')
-    list_filter = ('status', 'created_at')
+    list_filter = ('completed', 'created_at')

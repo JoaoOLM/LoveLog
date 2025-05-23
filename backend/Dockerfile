@@ -1,17 +1,28 @@
 FROM python:3.12-slim-bookworm
+
+# Copia o binário do uv (gerenciador de pacotes) da imagem oficial
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Configure the working directory
+# Define o diretório de trabalho
 WORKDIR /app
 
-# Copia só o pyproject.toml e uv.lock (depois melhora para uv.lock fixo)
+# Copia arquivos de dependência primeiro (para cache eficiente)
 COPY pyproject.toml uv.lock* ./
 
-# Sync the project into a new environment, asserting the lockfile is up to date
+# Instala as dependências em ambiente isolado
 RUN uv sync --locked
 
-# Expõe a porta que o Django vai rodar
+# Copia o restante do código da aplicação
+COPY . .
+
+# Exporta arquivos estáticos
+RUN uv run python3 manage.py collectstatic --noinput 
+
+# Criar usuário admin
+# RUN uv run python3 manage.py createsuperuser --noinput 
+
+# Expõe a porta da aplicação
 EXPOSE 8000
 
-# Comando padrão para iniciar o server
-CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Comando para rodar o Django com gunicorn
+CMD ["uv", "run", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

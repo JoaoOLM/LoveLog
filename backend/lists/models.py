@@ -13,9 +13,9 @@ class List(models.Model):
         
 class Item(models.Model):
     name = models.CharField(max_length=255)
-    status = models.BooleanField(default=False)
+    completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    list = models.ForeignKey(List, on_delete=models.CASCADE, verbose_name='items')
+    list = models.ForeignKey(List, on_delete=models.CASCADE, verbose_name='List')
     
     def __str__(self):
         return self.name

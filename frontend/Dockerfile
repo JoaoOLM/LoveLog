@@ -1,17 +1,20 @@
-# Usar imagem oficial do Node
-FROM node:20
-
-# Diretório de trabalho dentro do container
+# Etapa de build
+FROM node:20 AS builder
 WORKDIR /app
 
-# Copiar package.json e package-lock.json primeiro (pra aproveitar o cache)
 COPY package*.json ./
-
-# Instalar dependências
 RUN npm install
 
-# Expor a porta do Next.js
-EXPOSE 3000
+COPY . .
+RUN npm run build
 
-# Rodar o dev server
-CMD ["npm", "run", "dev"]
+# Etapa final para servir
+FROM node:20 AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app ./
+
+EXPOSE 3000
+CMD ["npm", "run", "start"]

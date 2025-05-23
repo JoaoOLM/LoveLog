@@ -3,8 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Photo
 from couples.mixins import CoupleAuthMixin
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
+@method_decorator(csrf_exempt, name='dispatch')
 class PhotoListCreateView(APIView, CoupleAuthMixin):
     def get(self, request):
         couple = self.get_couple(request)

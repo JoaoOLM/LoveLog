@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Canvas, PencilBrush, IText, FabricImage, Path } from 'fabric';
-import { fetchBoard, saveBoard, deleteBoard } from '@/lib/api';
+import { fetchData, updateData, deleteData } from '@/hooks/api';
 
 export const useBoard = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,14 +14,99 @@ export const useBoard = () => {
     const [color, setColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(5);
 
+    // Função para buscar dados do mural
+    const fetchBoard = async () => {
+        try {
+            return await fetchData('board');
+        } catch (error) {
+            console.error('Erro ao buscar mural:', error);
+            throw error;
+        }
+    };
+
+    // Função para salvar dados do mural
+    const saveBoard = async (content: JSON) => {
+        console.log('Salvando mural com conteúdo:', content);
+        try {
+            return await updateData('board/', { content: content });
+        } catch (error) {
+            console.error('Erro ao salvar mural:', error);
+            throw error;
+        }
+    };
+
+    // Função para excluir dados do mural
+    const deleteBoard = async () => {
+        try {
+            return await deleteData('board');
+        } catch (error) {
+            console.error('Erro ao excluir mural:', error);
+            throw error;
+        }
+    };
+
+    // Debounce para auto-save
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+    const debouncedSave = useCallback(async () => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(async () => {
+            if (canvas && !saving) {
+                try {
+                    setSaving(true);
+                    const boardContent = canvas.toJSON();
+                    await saveBoard(boardContent);
+                    console.log('Auto-save realizado com sucesso');
+                } catch (err) {
+                    console.error('Erro no auto-save:', err);
+                    setError('Erro ao salvar automaticamente. Tente salvar manualmente.');
+                } finally {
+                    setSaving(false);
+                }
+            }
+        }, 2000); // Salva após 2 segundos de inatividade
+    }, [canvas, saving]);
+
+    // Função para ajustar o tamanho do canvas
+    const resizeCanvas = useCallback(() => {
+        if (!canvas || !canvasRef.current) return;
+
+        const container = canvasRef.current.parentElement;
+        if (!container) return;
+
+        const containerWidth = container.clientWidth - 32; // Subtract padding
+        const containerHeight = 600;
+
+        // Definir tamanho do canvas
+        canvas.setDimensions({
+            width: containerWidth,
+            height: containerHeight
+        });
+
+        // Definir tamanho do elemento canvas no DOM
+        canvasRef.current.style.width = `${containerWidth}px`;
+        canvasRef.current.style.height = `${containerHeight}px`;
+
+        // Renderizar novamente
+        canvas.renderAll();
+    }, [canvas]);
+
     // Inicia o Canvas
     useEffect(() => {
         if (!canvasRef.current) return;
 
+        // Obter dimensões do container
+        const container = canvasRef.current.parentElement;
+        const containerWidth = container ? container.clientWidth - 32 : 800;
+        const containerHeight = 600;
+
         const fabricCanvas = new Canvas(canvasRef.current, {
             isDrawingMode: true,
-            width: 800,
-            height: 600,
+            width: containerWidth,
+            height: containerHeight,
             backgroundColor: '#ffffff',
         });
 
@@ -32,16 +117,26 @@ export const useBoard = () => {
 
         setCanvas(fabricCanvas);
 
+        // Configurar o canvas no DOM
+        canvasRef.current.style.width = `${containerWidth}px`;
+        canvasRef.current.style.height = `${containerHeight}px`;
+
         (async () => {
             try {
+                setLoading(true);
                 const response = await fetchBoard();
-                const raw = response.content;
-                if (raw) {
-                    const json = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                    await fabricCanvas.loadFromJSON(json);
+                console.log('Dados do mural carregados:', response);
+
+                if (response && response.content) {
+                    const boardContent = typeof response.content === 'string'
+                        ? JSON.parse(response.content)
+                        : response.content;
+
+                    await fabricCanvas.loadFromJSON(boardContent);
+                    console.log('Mural carregado com sucesso');
                 }
             } catch (err) {
-                // silencia erro no GET inicial (404, etc)
+                // Silencia erro no GET inicial (404, etc)
                 console.info('[useBoard] não foi possível carregar mural existente, iniciando em branco:', err);
             } finally {
                 fabricCanvas.renderAll();
@@ -49,31 +144,70 @@ export const useBoard = () => {
             }
         })();
 
+        // Event listener para redimensionamento
+        const handleResize = () => {
+            setTimeout(() => {
+                resizeCanvas();
+            }, 100);
+        };
+
+        window.addEventListener('resize', handleResize);
+
         return () => {
             fabricCanvas.dispose();
+            window.removeEventListener('resize', handleResize);
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
         };
     }, []);
 
-    // atualiza o pincel quando muda cor ou tamanho
+    // Efeito para redimensionar canvas quando o componente monta
+    useEffect(() => {
+        if (canvas) {
+            setTimeout(() => {
+                resizeCanvas();
+            }, 100);
+        }
+    }, [canvas, resizeCanvas]);
+
+    // Atualiza o pincel quando muda cor ou tamanho
     useEffect(() => {
         if (!canvas || !canvas.freeDrawingBrush) return;
         canvas.freeDrawingBrush.width = brushSize;
         canvas.freeDrawingBrush.color = color;
     }, [brushSize, color, canvas]);
 
-    // alterna ferramenta
+    // Alterna ferramenta
     useEffect(() => {
         if (!canvas) return;
         canvas.isDrawingMode = toolSelected === 'brush';
+
+        if (toolSelected === 'select') {
+            canvas.selection = true;
+            canvas.forEachObject(obj => {
+                obj.selectable = true;
+            });
+        } else {
+            canvas.selection = false;
+            canvas.discardActiveObject();
+            canvas.forEachObject(obj => {
+                obj.selectable = false;
+            });
+            canvas.renderAll();
+        }
     }, [toolSelected, canvas]);
 
     const saveBoardContent = async () => {
         if (!canvas) return;
         try {
             setSaving(true);
+            setError(null);
             const boardContent = canvas.toJSON();
             await saveBoard(boardContent);
-        } catch {
+            console.log('Mural salvo com sucesso');
+        } catch (err) {
+            console.error('Erro ao salvar mural:', err);
             setError('Erro ao salvar o mural. Por favor, tente novamente.');
         } finally {
             setSaving(false);
@@ -88,7 +222,9 @@ export const useBoard = () => {
             canvas.renderAll();
             try {
                 await deleteBoard();
-            } catch {
+                console.log('Mural limpo no servidor');
+            } catch (err) {
+                console.error('Erro ao limpar mural no servidor:', err);
                 setError('Erro ao limpar o mural no servidor.');
             }
         }
@@ -105,6 +241,7 @@ export const useBoard = () => {
         });
         canvas.add(text);
         canvas.setActiveObject(text);
+        setToolSelected('select'); // Muda para modo seleção para editar o texto
         canvas.renderAll();
     };
 
@@ -120,6 +257,7 @@ export const useBoard = () => {
                     image.scaleToWidth(canvas.width! / 2);
                 }
                 canvas.add(image);
+                setToolSelected('select'); // Muda para modo seleção após adicionar imagem
                 canvas.renderAll();
             };
         };
@@ -138,12 +276,17 @@ export const useBoard = () => {
             }
         );
         canvas.add(heartPath);
+        setToolSelected('select'); // Muda para modo seleção após adicionar coração
         canvas.renderAll();
     };
 
     const downloadBoardAsImage = () => {
         if (!canvas) return;
-        const dataURL = canvas.toDataURL();
+        const dataURL = canvas.toDataURL({
+            format: 'png',
+            quality: 1,
+            multiplier: 0
+        });
         const link = document.createElement('a');
         link.download = 'nosso-mural.png';
         link.href = dataURL;
@@ -151,6 +294,39 @@ export const useBoard = () => {
         link.click();
         document.body.removeChild(link);
     };
+
+    // Função para excluir objeto selecionado
+    const deleteSelectedObject = () => {
+        if (!canvas) return;
+        const activeObject = canvas.getActiveObject();
+        if (activeObject) {
+            canvas.remove(activeObject);
+            canvas.renderAll();
+        }
+    };
+
+    // Auto-salvar quando houver mudanças
+    useEffect(() => {
+        if (!canvas) return;
+
+        const handleModification = () => {
+            console.log('Canvas modificado - iniciando auto-save');
+            debouncedSave();
+        };
+
+        // Eventos para capturar modificações
+        canvas.on('path:created', handleModification); // Para desenhos à mão livre
+        canvas.on('object:modified', handleModification);
+        canvas.on('object:added', handleModification);
+        canvas.on('object:removed', handleModification);
+
+        return () => {
+            canvas.off('path:created', handleModification);
+            canvas.off('object:modified', handleModification);
+            canvas.off('object:added', handleModification);
+            canvas.off('object:removed', handleModification);
+        };
+    }, [canvas, debouncedSave]);
 
     return {
         canvasRef,
@@ -170,5 +346,7 @@ export const useBoard = () => {
         saveBoardContent,
         downloadBoardAsImage,
         setError,
+        deleteSelectedObject,
+        resizeCanvas,
     };
 };
