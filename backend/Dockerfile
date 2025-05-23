@@ -16,10 +16,7 @@ RUN uv sync --locked
 COPY . .
 
 # Exporta arquivos estáticos
-RUN uv run python3 manage.py collectstatic --noinput 
-
-# Criar usuário admin
-# RUN uv run python3 manage.py createsuperuser --noinput 
+RUN uv run python manage.py collectstatic --noinput 
 
 # Expõe a porta da aplicação
 EXPOSE 8000

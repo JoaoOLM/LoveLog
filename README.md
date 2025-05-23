@@ -90,7 +90,48 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api
 docker compose up --build
 ``` 
 
+### 4. Faça as migrações do banco
+```bash
+docker compose exec backend uv run python manage.py migrate
+``` 
+
+### 5. Crie um superusuário da API
+```bash
+docker compose exec backend uv run python manage.py createsuperuser --noinput
+``` 
+
 Acesse o site em: http://localhost:8080
+
+## 🧪 Usando o sistema
+
+## 1. Acessar o painel administrativo (API)
+Abra o painel de administração do Django acessando: 
+
+🔗 http://localhost:8080/admin/
+
+Faça login com as credenciais do superusuário criado automaticamente:
+```bash
+Usuário: admin  
+Senha: admin
+``` 
+
+## 2. Criar um novo casal
+No painel administrativo, vá até a seção Couples e adicione um novo casal com um nome e senha.
+Esses dados serão usados para autenticação no frontend.
+
+## 3. Adicionar fotos do casal
+Após criar o casal, adicione as fotos na seção Photos, associando-as ao casal criado.
+Essas imagens serão exibidas no carrossel da interface principal.
+
+## 4. Acessar o site do casal
+Acesse a interface do site em:
+
+🔗 http://localhost:8080/
+
+Faça login com os dados do casal criado e aproveite as funcionalidades como:
+- Carrossel de fotos
+- Mural compartilhado
+- Listas de tarefas
 
 
 ## 📌 Futuras Melhorias
