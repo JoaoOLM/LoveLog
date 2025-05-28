@@ -43,7 +43,7 @@ frontend/yarn-error.log*
 frontend/.pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-*.env*
+# *.env*
 
 # vercel
 frontend/.vercel

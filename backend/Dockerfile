@@ -15,11 +15,5 @@ RUN uv sync --locked
 # Copia o restante do código da aplicação
 COPY . .
 
-# Exporta arquivos estáticos
-RUN uv run python manage.py collectstatic --noinput 
-
 # Expõe a porta da aplicação
 EXPOSE 8000
-
-# Comando para rodar o Django com gunicorn
-CMD ["uv", "run", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

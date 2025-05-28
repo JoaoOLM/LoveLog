@@ -52,52 +52,10 @@ git clone https://github.com/seu-usuario/lovelog.git
 cd lovelog
 ``` 
 
-### 2. Configure os arquivos `.env`
-
-Crie os seguintes arquivos com base nos exemplos disponíveis:
-
-- `backend/.env`
-```bash
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=lovelog
-``` 
-- `backend/.env.db`
-```bash
-SECRET_KEY=sua_chave_secreta
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-CORS_ALLOWED_ORIGINS=http://localhost:8080
-CORS_ALLOW_ALL_ORIGINS=True
-CSRF_TRUSTED_ORIGINS=http://localhost:8080
-DB_NAME=lovelog
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_HOST=db
-DB_PORT=5432
-DJANGO_SUPERUSER_USERNAME=admin
-DJANGO_SUPERUSER_PASSWORD=admin
-DJANGO_SUPERUSER_EMAIL=admin@admin.com
-``` 
-- `frontend/.env`
-```bash
-NEXT_PUBLIC_API_URL=/api
-``` 
-
-### 3. Suba os containers com Docker Compose
+### 2. Suba os containers com Docker Compose
 
 ```bash
 docker compose up --build
-``` 
-
-### 4. Faça as migrações do banco
-```bash
-docker compose exec backend uv run python manage.py migrate
-``` 
-
-### 5. Crie um superusuário da API
-```bash
-docker compose exec backend uv run python manage.py createsuperuser --noinput
 ``` 
 
 Acesse o site em: http://localhost:8080
