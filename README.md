@@ -62,7 +62,13 @@ Acesse o site em: http://localhost:8080
 
 ## 🧪 Usando o sistema
 
-## 1. Acessar o painel administrativo (API)
+## 1. Crie um super usuário para acessar o painel administrativo (API)
+Rode o seguinte comando no terminal
+```bash
+docker compose exec backend uv run python manage.py createsuperuser --noinput
+``` 
+
+## 2. Acessar o painel administrativo (API)
 Abra o painel de administração do Django acessando: 
 
 🔗 http://localhost:8080/admin/
@@ -73,18 +79,20 @@ Usuário: admin
 Senha: admin
 ``` 
 
-## 2. Criar um novo casal
+## 3. Criar um novo casal
 No painel administrativo, vá até a seção Couples e adicione um novo casal com um nome e senha.
 Esses dados serão usados para autenticação no frontend.
 
-## 3. Adicionar fotos do casal
+## 4. Adicionar fotos do casal
 Após criar o casal, adicione as fotos na seção Photos, associando-as ao casal criado.
 Essas imagens serão exibidas no carrossel da interface principal.
 
-## 4. Acessar o site do casal
+## 5. Acessar o site do casal
 Acesse a interface do site em:
 
 🔗 http://localhost:8080/
+
+PS: Caso esteja tendo problemas de autorização tente acessar o site por uma guia anônima
 
 Faça login com os dados do casal criado e aproveite as funcionalidades como:
 - Carrossel de fotos
