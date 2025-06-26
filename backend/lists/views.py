@@ -1,136 +1,110 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+
 from .models import List, Item
-from django.db.models import Prefetch
-from couples.mixins import CoupleAuthMixin
+from couples.permissions import IsInCouple
+from couples.mixins import CoupleViewMixin
 from .serializers import ListSerializer, ItemSerializer
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 
-# Lista e criação de listas
-@method_decorator(csrf_exempt, name='dispatch')
-class ListListView(APIView, CoupleAuthMixin):
-    def get(self, request):
-        couple = self.get_couple(request)
-        lists = List.objects.filter(couple=couple).prefetch_related('item_set').order_by('name')
-        serializer = ListSerializer(lists, many=True)
-        return Response(serializer.data)
 
-    def post(self, request):
-        couple = self.get_couple(request)
-        name = request.data.get('name')
-        if not name:
-            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
-        list_obj = List.objects.create(couple=couple, name=name)
-        serializer = ListSerializer(list_obj)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+class ListViewSet(viewsets.ModelViewSet, CoupleViewMixin):
+    """
+    ViewSet completo para Lists
+    """
+    permission_classes = [IsAuthenticated, IsInCouple]
+    serializer_class = ListSerializer
+    
+    def get_queryset(self):
+        """Retorna apenas as listas do casal do usuário"""
+        couple = self.get_user_couple()
+        if not couple:
+            return List.objects.none()
+        return List.objects.filter(couple=couple).prefetch_related('item_set').order_by('name')
+    
+    def perform_create(self, serializer):
+        """Associa automaticamente o casal ao criar uma lista"""
+        couple = self.get_user_couple()
+        serializer.save(couple=couple)
 
-# Detalhes, atualização e remoção de uma lista
-class ListDetailView(APIView, CoupleAuthMixin):
-    def get(self, request, pk):
-        couple = self.get_couple(request)
+
+class ItemViewSet(viewsets.ModelViewSet, CoupleViewMixin):
+    """
+    ViewSet completo para Items
+    """
+    permission_classes = [IsAuthenticated, IsInCouple]
+    serializer_class = ItemSerializer
+    
+    def get_queryset(self):
+        """Retorna apenas os itens das listas do casal do usuário"""
+        couple = self.get_user_couple()
+        if not couple:
+            return Item.objects.none()
+        return Item.objects.filter(list__couple=couple).order_by('id')
+    
+    def perform_create(self, serializer):
+        """Valida se a lista pertence ao casal antes de criar o item"""
+        couple = self.get_user_couple()
+        list_obj = serializer.validated_data.get('list')
+        
+        # Verifica se a lista pertence ao casal
+        if list_obj.couple != couple:
+            return Response(
+                {"error": "Você não tem permissão para alterar essa lista."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer.save()
+    
+    @action(detail=False, methods=['get'], url_path='by-list/(?P<list_id>[^/.]+)')
+    def by_list(self, request, list_id=None):
+        """Endpoint customizado para buscar itens por lista"""
+        couple = self.get_user_couple()
+        if not couple:
+            return Response(
+                {"error": "Você não faz parte de nenhum casal"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         try:
-            list_obj = List.objects.prefetch_related('item_set').get(id=pk, couple=couple)
+            list_obj = List.objects.get(id=list_id, couple=couple)
         except List.DoesNotExist:
-            return Response({"error": "List not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = ListSerializer(list_obj)
-        return Response(serializer.data)
-
-    def put(self, request, pk):
-        couple = self.get_couple(request)
-        try:
-            list_obj = List.objects.get(id=pk, couple=couple)
-        except List.DoesNotExist:
-            return Response({"error": "List not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        name = request.data.get('name')
-        if not name:
-            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        list_obj.name = name
-        list_obj.save()
-        serializer = ListSerializer(list_obj)
-        return Response(serializer.data)
-
-    def delete(self, request, pk):
-        couple = self.get_couple(request)
-        try:
-            list_obj = List.objects.get(id=pk, couple=couple)
-        except List.DoesNotExist:
-            return Response({"error": "List not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        list_obj.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-@method_decorator(csrf_exempt, name='dispatch')
-class ItemListView(APIView, CoupleAuthMixin):
-    def get(self, request, list_id):
-        couple = self.get_couple(request)
-
-        try:
-            list_obj = List.objects.get(id=list_id)
-        except List.DoesNotExist:
-            return Response({"error": "List not found."}, status=status.HTTP_404_NOT_FOUND)
-
+            return Response(
+                {"error": "Lista não encontrada."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         items = Item.objects.filter(list=list_obj).order_by('id')
-        serializer = ItemSerializer(items, many=True)
+        serializer = self.get_serializer(items, many=True)
         return Response(serializer.data)
-
-    def post(self, request, list_id):
-        couple = self.get_couple(request)
-        name = request.data.get('name')
-
-        if not name:
-            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
-
+    
+    @action(detail=False, methods=['post'], url_path='add-to-list/(?P<list_id>[^/.]+)')
+    def add_to_list(self, request, list_id=None):
+        """Endpoint customizado para adicionar item a uma lista específica"""
+        couple = self.get_user_couple()
+        if not couple:
+            return Response(
+                {"error": "Você não faz parte de nenhum casal"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         try:
-            list_obj = List.objects.get(id=list_id)
+            list_obj = List.objects.get(id=list_id, couple=couple)
         except List.DoesNotExist:
-            return Response({"error": "List not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        item = Item.objects.create(list=list_obj, name=name, completed=False)
-        serializer = ItemSerializer(item)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-class ItemDetailView(APIView, CoupleAuthMixin):
-    def get(self, request, list_id, item_id):
-        couple = self.get_couple(request)
-        try:
-            item = Item.objects.get(id=item_id, list_id=list_id)
-        except Item.DoesNotExist:
-            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = ItemSerializer(item)
-        return Response(serializer.data)
-
-    def put(self, request, list_id, item_id):
-        couple = self.get_couple(request)
-        try:
-            item = Item.objects.get(id=item_id, list_id=list_id)
-        except Item.DoesNotExist:
-            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
-
+            return Response(
+                {"error": "Lista não encontrada."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         name = request.data.get('name')
-        completed = request.data.get('completed')
-
-        if name is None or completed is None:
-            return Response({"error": "Name and completed are required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        item.name = name
-        item.completed = completed
-        item.save()
-        serializer = ItemSerializer(item)
-        return Response(serializer.data)
-
-    def delete(self, request, list_id, item_id):
-        couple = self.get_couple(request)
-        try:
-            item = Item.objects.get(id=item_id, list_id=list_id)
-        except Item.DoesNotExist:
-            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        item.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
+        if not name:
+            return Response(
+                {"error": "Nome é obrigatório."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        item = Item.objects.create(list=list_obj, name=name, completed=False)
+        serializer = self.get_serializer(item)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

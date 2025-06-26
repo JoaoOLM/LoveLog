@@ -1,36 +1,48 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Photo
-from couples.mixins import CoupleAuthMixin
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 
-# Create your views here.
-@method_decorator(csrf_exempt, name='dispatch')
-class PhotoListCreateView(APIView, CoupleAuthMixin):
-    def get(self, request):
-        couple = self.get_couple(request)
-        photos = Photo.objects.filter(couple=couple)
-        data = [{"id": p.id, "url": request.build_absolute_uri(p.image.url)} for p in photos]
-        return Response(data)
+from .models import Photo
+from couples.permissions import IsInCouple, CoupleObjectPermission
+from couples.mixins import CoupleViewMixin
+
+class PhotoViewSet(viewsets.ModelViewSet, CoupleViewMixin):
+    """
+    ViewSet completo para Photos
+    """
+    permission_classes = [IsAuthenticated, IsInCouple]
     
-    def post(self, request):
-        couple = self.get_couple(request)
-        image = request.FILES.get('image')
-        
-        if not image:
-            return Response({"error" : "Image is required."}, status=status.HTTP_400_BAD_REQUEST)
-        photo = Photo.objects.create(couple=couple, image=image)
-        return Response({"id": photo.id, "url": request.build_absolute_uri(photo.image.url)}, status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        """Retorna apenas as fotos do casal do usuário"""
+        couple = self.get_user_couple()
+        if not couple:
+            return Photo.objects.none()
+        return Photo.objects.filter(couple=couple).order_by('-created_at')
     
-class PhotoDeleteView(APIView, CoupleAuthMixin):
-    def delete(self, request, photo_id):
-        couple = self.get_couple(request)
-        try:
-            photo = Photo.objects.filter(id=photo_id, couple=couple)        
-        except Photo.DoesNotExist:
-            return Response({"error": "Photo not found."}, status=status.HTTP_404_NOT_FOUND)
+    def perform_create(self, serializer):
+        """Associa automaticamente o casal ao criar uma foto"""
+        couple = self.get_user_couple()
+        serializer.save(couple=couple)
+    
+    @action(detail=False, methods=['get'])
+    def recent(self, request):
+        """Endpoint customizado para fotos recentes"""
+        couple = self.get_user_couple()
+        if not couple:
+            return Response(
+                {"error": "Você não faz parte de nenhum casal"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
         
-        photo.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        recent_photos = Photo.objects.filter(couple=couple).order_by('-created_at')[:10]
+        data = [
+            {
+                "id": photo.id,
+                "url": request.build_absolute_uri(photo.image.url)
+            }
+            for photo in recent_photos
+        ]
+        
+        return Response({"recent_photos": data})
