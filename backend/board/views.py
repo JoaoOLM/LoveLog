@@ -10,26 +10,23 @@ from django.views.decorators.csrf import csrf_exempt
 @method_decorator(csrf_exempt, name='dispatch')
 class BoardView(APIView, CoupleAuthMixin):
     def get(self, request):
-        couple = self.get_couple(request)
-        board, created = Board.objects.get_or_create(couple=couple)
+        board, created = Board.objects.get_or_create()
         return Response({"id": board.id, "content": board.content})
         
     def post(self, request):
-        couple = self.get_couple(request)
         content = request.data.get('content')
 
         if not content:
             return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
         
-        board, created = Board.objects.get_or_create(couple=couple)
+        board, created = Board.objects.get_or_create()
         board.content = content
         board.save()
         return Response({"id": board.id, "content": board.content}, status=status.HTTP_200_OK)
     
     def put(self, request):
-        couple = self.get_couple(request)
         try:
-            board = Board.objects.get(couple=couple)
+            board = Board.objects.get()
         except Board.DoesNotExist:
             return Response({"error": "Board not found."}, status=status.HTTP_404_NOT_FOUND)
         
@@ -42,8 +39,7 @@ class BoardView(APIView, CoupleAuthMixin):
         return Response({"id": board.id, "content": board.content}, status=status.HTTP_200_OK)
         
     def delete(self, request):
-        couple = self.get_couple(request)
-        board, created = Board.objects.get_or_create(couple=couple)
+        board, created = Board.objects.get_or_create()
         board.content = ""
         board.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
