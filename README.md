@@ -139,42 +139,6 @@ docker compose up --build
 
 Acesse o site em: http://localhost:8080
 
-## 🧪 Usando o sistema
-
-## 1. Crie um super usuário para acessar o painel administrativo (API)
-Rode o seguinte comando no terminal
-```bash
-docker compose exec backend uv run python manage.py createsuperuser --noinput
-``` 
-
-## 2. Acessar o painel administrativo (API)
-Abra o painel de administração do Django acessando: 
-
-🔗 http://localhost:8080/admin/
-
-Faça login com as credenciais do superusuário criado automaticamente:
-```bash
-Usuário: admin  
-Senha: admin
-``` 
-
-## 3. Criar um novo casal
-No painel administrativo, vá até a seção Couples e adicione um novo casal com um nome e senha.
-Esses dados serão usados para autenticação no frontend.
-
-## 4. Acessar a aplicação
-Acesse a interface da aplicação em:
-
-🔗 http://localhost:8080/
-
-A aplicação agora funciona sem autenticação e permite:
-- Visualizar e adicionar fotos no carrossel
-- Gerenciar listas de tarefas
-- Usar o mural colaborativo
-
----
-
-
 ## 📌 Funcionalidades Implementadas
 
 ✅ Sistema de fotos com upload e exclusão  
