@@ -6,6 +6,11 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+# Define a variável de ambiente para o build
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 RUN npm run build
 
 # Etapa final para servir

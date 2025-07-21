@@ -48,7 +48,7 @@ build_images() {
     
     # Build frontend image
     echo -e "${BLUE}Building frontend image...${NC}"
-    docker build -t frontend:latest ./frontend/
+    docker build -t frontend:latest --build-arg NEXT_PUBLIC_API_URL=/api ./frontend/
     
     echo -e "${GREEN}✅ All images built successfully${NC}"
 }

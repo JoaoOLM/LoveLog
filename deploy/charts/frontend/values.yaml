@@ -10,7 +10,7 @@ service:
   port: 3000
 
 env:
-  apiUrl: "http://backend:8000"
+  apiUrl: "/api"
 
 livenessProbe:
   enabled: true
