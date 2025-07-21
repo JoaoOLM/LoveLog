@@ -30,9 +30,14 @@ O **LoveLog** é um aplicativo web feito para casais que desejam registrar momen
 
 ### 🚀 Deploy Automático com Script
 
+O script `deploy.sh` cuida de **todo o processo** de deploy e configuração de acesso local:
+
 ```bash
-# Deploy completo da aplicação
-./deploy.sh
+# Deploy completo da aplicação com acesso via k8s.local
+./deploy.sh deploy
+
+# Configurar apenas o acesso k8s.local (se já deployado)
+./deploy.sh access
 
 # Verificar status
 ./deploy.sh status
@@ -40,26 +45,35 @@ O **LoveLog** é um aplicativo web feito para casais que desejam registrar momen
 # Visualizar logs
 ./deploy.sh logs
 
+# Parar serviços de acesso (proxy/túnel)
+./deploy.sh stop
+
 # Limpeza completa
 ./deploy.sh clean
+
+# Ajuda
+./deploy.sh help
 ```
 
-> Notas: caso o script fique preso com a mensagem "ready.go:303: 2025-07-20 23:45:50.17786733 -0300 -03 m=+71.188969003 [debug] Deployment is not ready: lovelog/lovelog-backend. 0 out of 1 expected pods are ready" interrompa o script (ctrl+c) e rode ./deploy.sh novamente
-
-### 📋 O que o script faz:
+### 📋 O que o script faz automaticamente:
 
 1. ✅ Verifica se Minikube está rodando
 2. ✅ Habilita addon nginx-ingress  
 3. ✅ Constrói imagens Docker no daemon do Minikube
 4. ✅ Atualiza dependências do Helm
 5. ✅ Deploy da aplicação via Helm
-6. ✅ Adiciona `k8s.local` ao `/etc/hosts`
-7. ✅ Verifica status de todos os recursos
+6. ✅ Configura `/etc/hosts` com `127.0.0.1 k8s.local`
+7. ✅ Instala `socat` (se necessário)
+8. ✅ Cria túnel do ingress-nginx
+9. ✅ Configura proxy local na porta 80
+10. ✅ Testa conectividade automaticamente
 
 ### 🌐 Acesso após Deploy
 
-- **Aplicação Principal**: http://k8s.local
+- **Aplicação Principal**: http://k8s.local ✨ (acesso direto!)
 - **API Backend**: http://k8s.local/api/
+
+> **💡 Nota**: O script automaticamente configura proxy/túnel para que `k8s.local` funcione em qualquer ambiente Linux. Se a porta 80 estiver em uso, o script sugere alternativas como `kubectl port-forward`.
 
 ### 📊 Recursos Kubernetes Implementados
 
@@ -174,3 +188,40 @@ A aplicação agora funciona sem autenticação e permite:
 ## 👨‍💻 Autor
 
 Feito com ❤️ por João Otávio
+
+---
+
+### 🔧 Solução de Problemas
+
+#### Problema: Porta 80 já está em uso
+```bash
+# O script detecta automaticamente e sugere alternativas:
+# 1. Parar o serviço que usa a porta 80
+sudo systemctl stop apache2  # ou nginx, etc.
+./deploy.sh access
+
+# 2. Usar port-forward como alternativa
+kubectl port-forward -n lovelog svc/lovelog-nginx 8080:80
+# Então acessar: http://localhost:8080
+```
+
+#### Problema: Tunnel não estabelece conexão
+```bash
+# Reiniciar os serviços
+./deploy.sh stop
+./deploy.sh access
+
+# Verificar status do ingress
+kubectl get pods -n ingress-nginx
+minikube addons enable ingress
+```
+
+#### Problema: Deploy trava em "Deployment is not ready"
+```bash
+# Interrompa (Ctrl+C) e execute novamente
+./deploy.sh deploy
+
+# Ou force a recriação
+./deploy.sh clean
+./deploy.sh deploy
+```

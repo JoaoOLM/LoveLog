@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         {{- include "backend.labels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
     spec:
       initContainers:
         - name: wait-for-postgres
