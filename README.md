@@ -6,10 +6,10 @@ O **LoveLog** é um aplicativo web feito para casais que desejam registrar momen
 
 ## ✨ Funcionalidades
 
-- 🔐 Sistema de login seguro com autenticação via código de casal
-- 🖼️ Carrossel de fotos para recordar momentos
-- 🧠 Mural compartilhado com sistema de desenho e edição visual
-- 📋 To-do lists personalizadas para ambos os parceiros
+- 📷 Carrossel de fotos para recordar momentos especiais
+- 📋 Sistema de listas de tarefas (To-Do Lists)  
+- 🧠 Mural colaborativo para desenhos e anotações
+- 🌐 Interface moderna e responsiva
 
 ---
 
@@ -17,15 +17,82 @@ O **LoveLog** é um aplicativo web feito para casais que desejam registrar momen
 
 | Camada     | Tecnologia                    |
 |------------|-------------------------------|
-| Frontend   | [Next.js](https://nextjs.org/), [TailwindCSS](https://tailwindcss.com/), [TypeScript](https://www.typescriptlang.org/), [Fabric.js](http://fabricjs.com/) |
+| Frontend   | [Next.js](https://nextjs.org/), [TailwindCSS](https://tailwindcss.com/), [TypeScript](https://www.typescriptlang.org/) |
 | Backend    | [Django](https://www.djangoproject.com/), [Django REST Framework](https://www.django-rest-framework.org/) |
 | Banco de dados | [PostgreSQL](https://www.postgresql.org/) |
 | Reverse Proxy | [NGINX](https://www.nginx.com/) |
 | Containerização | [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/) |
+| Orquestração | [Kubernetes](https://kubernetes.io/), [Helm](https://helm.sh/), [Minikube](https://minikube.sigs.k8s.io/) |
 
 ---
 
-## 📦 Estrutura de Contêineres
+## ☸️ Deploy com Kubernetes + Helm
+
+### 🚀 Deploy Automático com Script
+
+```bash
+# Deploy completo da aplicação
+./deploy.sh
+
+# Verificar status
+./deploy.sh status
+
+# Visualizar logs
+./deploy.sh logs
+
+# Limpeza completa
+./deploy.sh clean
+```
+
+> Notas: caso o script fique preso com a mensagem "ready.go:303: 2025-07-20 23:45:50.17786733 -0300 -03 m=+71.188969003 [debug] Deployment is not ready: lovelog/lovelog-backend. 0 out of 1 expected pods are ready" interrompa o script (ctrl+c) e rode ./deploy.sh novamente
+
+### 📋 O que o script faz:
+
+1. ✅ Verifica se Minikube está rodando
+2. ✅ Habilita addon nginx-ingress  
+3. ✅ Constrói imagens Docker no daemon do Minikube
+4. ✅ Atualiza dependências do Helm
+5. ✅ Deploy da aplicação via Helm
+6. ✅ Adiciona `k8s.local` ao `/etc/hosts`
+7. ✅ Verifica status de todos os recursos
+
+### 🌐 Acesso após Deploy
+
+- **Aplicação Principal**: http://k8s.local
+- **API Backend**: http://k8s.local/api/
+
+### 📊 Recursos Kubernetes Implementados
+
+| Recurso | Quantidade | Descrição |
+|---------|------------|-----------|
+| **Deployments** | 4 | Backend, Frontend, Nginx, PostgreSQL |
+| **Services** | 4 | ClusterIP para comunicação interna |
+| **PVC** | 3 | Persistência para DB, static files e media |
+| **Secret** | 1 | Credenciais do banco de dados |
+| **ConfigMap** | 1 | Configuração do Nginx |
+| **Ingress** | 1 | Exposição via k8s.local |
+
+### 🔍 Comandos Úteis Kubernetes
+
+```bash
+# Ver todos os recursos
+kubectl get all -n lovelog
+
+# Logs do backend
+kubectl logs -f deployment/backend -n lovelog
+
+# Executar comando no pod
+kubectl exec -it deployment/backend -n lovelog -- python manage.py shell
+
+# Port forward para debug
+kubectl port-forward service/backend 8000:8000 -n lovelog
+```
+
+---
+
+## 🐳 Deploy com Docker Compose
+
+### 📦 Estrutura de Contêineres
 
 O projeto é totalmente containerizado com Docker Compose e conta com os seguintes serviços:
 
@@ -39,11 +106,9 @@ O projeto é totalmente containerizado com Docker Compose e conta com os seguint
 | Volume        | Caminho no container     | Uso                        |
 |---------------|--------------------------|-----------------------------|
 | `static_volume` | `/app/staticfiles/`      | Arquivos estáticos do Django |
-| `media_volume`  | `/app/mediafiles/`       | Uploads de fotos do casal    |
+| `media_volume`  | `/app/media/`            | Uploads de fotos             |
 
----
-
-## 🚀 Como rodar localmente
+### 🚀 Como rodar localmente
 
 ### 1. Clone o repositório
 
@@ -83,28 +148,28 @@ Senha: admin
 No painel administrativo, vá até a seção Couples e adicione um novo casal com um nome e senha.
 Esses dados serão usados para autenticação no frontend.
 
-## 4. Adicionar fotos do casal
-Após criar o casal, adicione as fotos na seção Photos, associando-as ao casal criado.
-Essas imagens serão exibidas no carrossel da interface principal.
-
-## 5. Acessar o site do casal
-Acesse a interface do site em:
+## 4. Acessar a aplicação
+Acesse a interface da aplicação em:
 
 🔗 http://localhost:8080/
 
-PS: Caso esteja tendo problemas de autorização tente acessar o site por uma guia anônima
+A aplicação agora funciona sem autenticação e permite:
+- Visualizar e adicionar fotos no carrossel
+- Gerenciar listas de tarefas
+- Usar o mural colaborativo
 
-Faça login com os dados do casal criado e aproveite as funcionalidades como:
-- Carrossel de fotos
-- Mural compartilhado
-- Listas de tarefas
+---
 
 
-## 📌 Futuras Melhorias
+## 📌 Funcionalidades Implementadas
 
-- Adição de comentários no mural
-- Notificações push para lembretes do casal
-- Compartilhamento externo de momentos selecionados
+✅ Sistema de fotos com upload e exclusão  
+✅ Listas de tarefas (To-Do Lists)  
+✅ Mural colaborativo para desenhos  
+✅ Containerização completa  
+✅ Deploy automatizado no Kubernetes  
+✅ Proxy reverso com Nginx  
+✅ Armazenamento persistente  
 
 ## 👨‍💻 Autor
 

@@ -4,4 +4,3 @@ from .views import BoardView
 urlpatterns = [
     path("", BoardView.as_view()),
 ]
- 

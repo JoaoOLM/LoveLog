@@ -1,0 +1,49 @@
+# Ingress configuration
+ingress:
+  host: k8s.local
+  enabled: true
+  className: nginx
+
+# Service configuration  
+service:
+  port: 80
+  type: ClusterIP
+
+# Global configuration
+global:
+  namespace: lovelog
+  backend:
+    name: backend
+    port: 8000
+    replicas: 1
+    image: backend:latest
+  frontend:
+    name: frontend
+    port: 3000
+    replicas: 1
+    image: frontend:latest
+  database:
+    name: postgres
+    port: 5432
+    replicas: 1
+
+# Subchart enablement
+postgres:
+  enabled: true
+
+backend:
+  enabled: true
+
+frontend:
+  enabled: true
+
+nginx:
+  enabled: true
+
+# Shared volumes configuration
+volumes:
+  static:
+    size: 512Mi
+  media:
+    size: 512Mi
+

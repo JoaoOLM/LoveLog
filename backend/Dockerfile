@@ -15,5 +15,11 @@ RUN uv sync --locked
 # Copia o restante do código da aplicação
 COPY . .
 
+# Copia o script de entrada e o torna executável
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Expõe a porta da aplicação
 EXPOSE 8000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

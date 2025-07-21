@@ -1,0 +1,50 @@
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching, and
+# negation (prefixed with !). Only one pattern per line.
+.DS_Store
+# Common VCS dirs
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+# Various IDEs
+.project
+.idea/
+*.tmproj
+.vscode/
+# OS generated files
+Thumbs.db
+# Local development files
+*.log
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.local
+.env.production.local
+.env.development.local
+# Documentation
+README.md
+KUBERNETES_DOCUMENTATION.md
+# Build scripts (included in parent directory)
+../deploy.sh
+../setup-environment.sh
+../Makefile
+# Docker files (not needed for Helm)
+../docker-compose.yml
+../backend/Dockerfile
+../frontend/Dockerfile
+../nginx/default.conf
+# Source code (not needed for Helm)
+../backend/
+../frontend/
+../nginx/

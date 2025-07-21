@@ -1,14 +1,12 @@
 from django.db import models
-from couples.models import Couple
 
 # Create your models here.
 class List(models.Model):
-    couple = models.ForeignKey(Couple, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f'{self.name} ({self.couple.name})'
+        return self.name
         
         
 class Item(models.Model):

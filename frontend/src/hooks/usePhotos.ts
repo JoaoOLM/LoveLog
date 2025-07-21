@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchData, updateData, deleteData } from './api';
+import { fetchData, deleteData, uploadFile } from './api';
 
 interface Image {
-    id?: string;
+    id?: number;
     url: string;
 }
 
@@ -25,31 +25,16 @@ export function usePhotos() {
         }
     }, []);
 
-    // Buscar uma foto específica
-    const getPhoto = useCallback(async (photoId: string) => {
+    // Upload de nova foto
+    const uploadPhoto = useCallback(async (file: File) => {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await fetchData(`photos/${photoId}`);
-            return data;
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erro ao buscar foto');
-            return null;
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    // Adicionar nova foto
-    const addPhoto = useCallback(async (photo: Omit<Image, 'id'>) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const newPhoto = await updateData('photos/create', photo);
+            const newPhoto = await uploadFile('photos/', file);
             setPhotos((prev: Image[]) => [...prev, newPhoto]);
             return newPhoto;
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erro ao adicionar foto');
+            setError(err instanceof Error ? err.message : 'Erro ao fazer upload da foto');
             return null;
         } finally {
             setIsLoading(false);
@@ -57,11 +42,10 @@ export function usePhotos() {
     }, []);
 
     // Excluir foto
-    const deletePhoto = useCallback(async (photoId: string) => {
+    const deletePhoto = useCallback(async (photoId: number) => {
         setIsLoading(true);
         setError(null);
         try {
-            // Fixed endpoint from 'lists' to 'photos'
             await deleteData(`photos/${photoId}`);
             setPhotos((prev: Image[]) => prev.filter(item => item.id !== photoId));
             return true;
@@ -83,8 +67,7 @@ export function usePhotos() {
         isLoading,
         error,
         getPhotos,
-        getPhoto,
-        addPhoto,
+        uploadPhoto,
         deletePhoto,
     };
 }
